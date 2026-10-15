@@ -52,7 +52,7 @@ export async function updateTask(taskId: string, input: Partial<{ title: string;
   if (!isMongoReady()) {
     const index = demoState.tasks.findIndex((task) => task.id === taskId);
     if (index === -1) throw new AppError('Task not found', 404);
-    demoState.tasks[index] = { ...demoState.tasks[index], ...input, updatedAt: new Date().toISOString() };
+    demoState.tasks[index] = { ...demoState.tasks[index], ...input };
     return demoState.tasks[index];
   }
 

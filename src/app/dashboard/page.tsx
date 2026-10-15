@@ -5,22 +5,31 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { WooProductCount, WooProducts } from '@/components/dashboard/woo-products';
 import { getSessionFromCookies } from '@/lib/auth';
+
 import { getDashboardData } from '@/services/dashboard/service';
 import { getDashboardInsights } from '@/services/ai/service';
 
-function MetricCard({ label, value, hint }: { label: string; value: string | number; hint: string }) {
-  return (
-    <Card>
+function MetricCard({ label, value, hint, href }: { label: string; value: React.ReactNode; hint: string; href?: string }) {
+  const content = (
       <CardHeader>
         <p className="text-sm text-muted-foreground">{label}</p>
-        <CardTitle className="text-3xl">{value}</CardTitle>
+        <CardTitle className="text-3xl tabular-nums">{value}</CardTitle>
+        <p className="text-xs text-primary">{href ? 'View details →' : ''}</p>
       </CardHeader>
+  );
+
+  const card = (
+    <Card className={href ? 'transition hover:-translate-y-0.5 hover:shadow-md' : undefined}>
+      {content}
       <CardContent>
         <p className="text-sm text-muted-foreground">{hint}</p>
       </CardContent>
     </Card>
   );
+
+  return href ? <Link href={href} aria-label={`${label}: ${value}`}>{card}</Link> : card;
 }
 
 export default async function DashboardPage() {
@@ -48,7 +57,8 @@ export default async function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <MetricCard label="Total customers" value={data.totalCustomers} hint="CRM and WooCommerce customers" />
           <MetricCard label="Total orders" value={data.totalOrders} hint="Synced orders in the system" />
-          <MetricCard label="Total products" value={data.totalProducts ?? 0} hint="Tracked catalog items" />
+          {/* Refreshes from WooCommerce so the count also reflects products not yet in MongoDB. */}
+          <MetricCard label="Total products" value={<WooProductCount initialCount={data.totalProducts ?? 0} />} hint="Tracked catalog items" href="/products" />
           <MetricCard label="Total sales" value={data.totalSales} hint="Revenue across stored orders" />
           <MetricCard label="Open tasks" value={data.pendingTasks} hint="Requires follow-up" />
         </div>
@@ -116,18 +126,10 @@ export default async function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent products</CardTitle>
+              <CardTitle>WooCommerce products</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 md:grid-cols-2">
-                {data.recentProducts?.map((product: any) => (
-                  <div key={product.id ?? product._id} className="rounded-xl border border-border bg-muted/30 p-4">
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">{product.sku || 'No SKU'}</p>
-                    <p className="mt-2 text-sm">Stock: {product.stockQuantity ?? 0}</p>
-                  </div>
-                ))}
-              </div>
+              <WooProducts />
             </CardContent>
           </Card>
         </div>

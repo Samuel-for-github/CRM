@@ -4,6 +4,14 @@ import { connectToDatabase, isMongoReady } from "@/lib/db";
 import { demoState } from "@/lib/demo-store";
 import { AppError } from "@/lib/errors";
 import { Product } from "@/models/Product";
+import type { DemoProduct } from "@/lib/demo-data";
+
+const stockStatuses: DemoProduct["stockStatus"][] = [
+  "instock",
+  "lowstock",
+  "outofstock",
+  "onbackorder",
+];
 
 export async function upsertProductFromWooCommerce(
   productInput: Record<string, unknown>
@@ -44,7 +52,11 @@ export async function upsertProductFromWooCommerce(
       Number(productInput.sale_price ?? 0) * 100
     ),
     currency: String(productInput.currency ?? "INR"),
-    stockStatus: String(productInput.stock_status ?? "instock"),
+    stockStatus: stockStatuses.includes(
+      productInput.stock_status as DemoProduct["stockStatus"]
+    )
+      ? (productInput.stock_status as DemoProduct["stockStatus"])
+      : "instock",
     stockQuantity:
       productInput.stock_quantity == null
         ? 0

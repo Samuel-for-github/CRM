@@ -1,10 +1,7 @@
 
 import OAuth from "oauth-1.0a";
 import crypto from "crypto";
-
-const storeUrl = process.env.WOOCOMMERCE_STORE_URL;
-const consumerKey = process.env.WOOCOMMERCE_CONSUMER_KEY;
-const consumerSecret = process.env.WOOCOMMERCE_CONSUMER_SECRET;
+import { getEnv } from "./env";
 
 export interface WooCommerceProduct {
   id: number;
@@ -37,6 +34,8 @@ export interface WooCommerceProduct {
 export async function getWooCommerceProducts(): Promise<
   WooCommerceProduct[]
 > {
+  const { WOO_STORE_URL: storeUrl, WOO_CONSUMER_KEY: consumerKey, WOO_CONSUMER_SECRET: consumerSecret } = getEnv();
+
   if (!storeUrl || !consumerKey || !consumerSecret) {
     throw new Error(
       "Missing WooCommerce environment variables. Check .env.local."
@@ -68,7 +67,7 @@ export async function getWooCommerceProducts(): Promise<
 
   const response = await fetch(url, {
     method: "GET",
-    headers,
+    headers: { Authorization: headers.Authorization },
     cache: "no-store",
   });
 
@@ -82,3 +81,5 @@ export async function getWooCommerceProducts(): Promise<
 
   return (await response.json()) as WooCommerceProduct[];
 }
+
+export const fetchWooCommerceProducts = getWooCommerceProducts;

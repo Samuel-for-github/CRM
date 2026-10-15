@@ -4,8 +4,17 @@ import { randomId } from '@/lib/auth';
 import { AppError } from '@/lib/errors';
 import { Product } from '@/models/Product';
 import { productUpsertSchema } from '@/lib/validation/product';
+import type { DemoProduct } from '@/lib/demo-data';
 
 export type ProductInput = ReturnType<typeof productUpsertSchema.parse>;
+
+const stockStatuses: DemoProduct['stockStatus'][] = ['instock', 'lowstock', 'outofstock', 'onbackorder'];
+
+function getStockStatus(value: unknown): DemoProduct['stockStatus'] {
+  return stockStatuses.includes(value as DemoProduct['stockStatus'])
+    ? value as DemoProduct['stockStatus']
+    : 'instock';
+}
 
 export async function listProducts({ page, limit, search }: { page: number; limit: number; search: string }) {
   if (!isMongoReady()) {
@@ -127,7 +136,7 @@ export async function upsertProductFromWooCommerce(productInput: Record<string, 
       regularPriceMinor: Math.round(Number(productInput.regular_price ?? productInput.price ?? 0) * 100),
       salePriceMinor: Math.round(Number(productInput.sale_price ?? 0) * 100),
       currency: String(productInput.currency ?? 'USD'),
-      stockStatus: String(productInput.stock_status ?? 'instock'),
+      stockStatus: getStockStatus(productInput.stock_status),
       stockQuantity: Number(productInput.stock_quantity ?? 0),
       manageStock: Boolean(productInput.manage_stock),
       featured: Boolean(productInput.featured),
