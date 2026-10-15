@@ -38,3 +38,27 @@ export function mapWooOrder(order: Record<string, unknown>) {
     metadata: order
   };
 }
+
+export function mapWooProduct(product: Record<string, unknown>) {
+  return {
+    wooProductId: Number(product.id),
+    sku: String(product.sku ?? ''),
+    name: String(product.name ?? 'Unnamed product'),
+    slug: String(product.slug ?? ''),
+    description: String(product.description ?? ''),
+    type: String(product.type ?? 'simple'),
+    status: String(product.status ?? 'publish'),
+    priceMinor: normalizeMoney(String(product.price ?? product.regular_price ?? '0')),
+    regularPriceMinor: normalizeMoney(String(product.regular_price ?? product.price ?? '0')),
+    salePriceMinor: normalizeMoney(String(product.sale_price ?? '0')),
+    currency: String(product.currency ?? 'USD'),
+    stockStatus: String(product.stock_status ?? 'instock'),
+    stockQuantity: Number(product.stock_quantity ?? 0),
+    manageStock: Boolean(product.manage_stock),
+    featured: Boolean(product.featured),
+    onSale: Boolean(product.on_sale),
+    categories: Array.isArray(product.categories) ? product.categories.map((item: any) => String(item?.name ?? '')) : [],
+    images: Array.isArray(product.images) ? product.images.map((item: any) => String(item?.src ?? '')) : [],
+    metadata: product
+  };
+}

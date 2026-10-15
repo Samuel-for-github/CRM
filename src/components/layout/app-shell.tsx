@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BarChart3, Users, ShoppingBag, ClipboardList, Sparkles, LogOut } from 'lucide-react';
+import { BarChart3, Users, ShoppingBag, ClipboardList, Sparkles, LogOut, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { getSessionFromCookies } from '@/lib/auth';
@@ -8,6 +8,7 @@ const navigation = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/products', label: 'Products', icon: Package },
   { href: '/tasks', label: 'Tasks', icon: ClipboardList },
   { href: '/ai-assistant', label: 'AI Assistant', icon: Sparkles }
 ];

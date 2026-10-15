@@ -16,5 +16,8 @@ export async function POST(request: NextRequest) {
   if (topic.includes('customer')) {
     return NextResponse.json(await handleWooWebhook('customers', payload));
   }
+  if (topic.includes('product')) {
+    return NextResponse.json(await handleWooWebhook('products', payload));
+  }
   return NextResponse.json(await handleWooWebhook('orders', payload));
 }

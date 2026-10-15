@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
   if (!isDemoMode() && env.MONGODB_URI) {
     await connectToDatabase();
-    const existing = await AdminUser.findOne({ email: payload.email.toLowerCase() }).lean();
+    const existing = await AdminUser.findOne({ email: payload.email.toLowerCase() }).lean<{ email: string; passwordHash: string }>();
     if (existing) {
       userEmail = existing.email;
       passwordHash = existing.passwordHash;

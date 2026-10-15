@@ -5,8 +5,9 @@ import { AppError } from '@/lib/errors';
 import { SyncLog } from '@/models/SyncLog';
 import { Customer } from '@/models/Customer';
 import { Order } from '@/models/Order';
+import { Product } from '@/models/Product';
 import { fetchWooPaginated, isWooCommerceConfigured, wooFetch } from './client';
-import { mapWooCustomer, mapWooOrder } from './mappers';
+import { mapWooCustomer, mapWooOrder, mapWooProduct } from './mappers';
 
 export function verifyWooWebhookSignature(rawBody: string, signatureHeader: string | null, secret: string) {
   if (!signatureHeader || !secret) {
@@ -19,7 +20,7 @@ export function verifyWooWebhookSignature(rawBody: string, signatureHeader: stri
   return provided.length === actual.length && crypto.timingSafeEqual(provided, actual);
 }
 
-async function writeSyncLog(syncType: 'customers' | 'orders' | 'webhook' | 'initial-import' | 'manual', payload: Partial<{
+async function writeSyncLog(syncType: 'customers' | 'orders' | 'products' | 'webhook' | 'initial-import' | 'manual', payload: Partial<{
   status: 'success' | 'partial' | 'error';
   recordsProcessed: number;
   recordsUpserted: number;
@@ -84,15 +85,35 @@ export async function syncWooOrders() {
   return { mode: 'live', processed: rawOrders.length, upserted };
 }
 
-export async function runInitialSync(scope: 'customers' | 'orders' | 'all') {
-  if (scope === 'customers') return syncWooCustomers();
-  if (scope === 'orders') return syncWooOrders();
-  const [customers, orders] = await Promise.all([syncWooCustomers(), syncWooOrders()]);
-  await writeSyncLog('initial-import', { status: 'success', message: 'Initial import finished', details: { customers, orders } });
-  return { customers, orders };
+export async function syncWooProducts() {
+  if (!isWooCommerceConfigured()) {
+    return { mode: 'demo', processed: demoState.products.length, upserted: 0 };
+  }
+
+  const rawProducts = await fetchWooPaginated<Record<string, unknown>>('products');
+  let upserted = 0;
+  await connectToDatabase();
+
+  for (const rawProduct of rawProducts) {
+    const mapped = mapWooProduct(rawProduct);
+    await Product.findOneAndUpdate({ wooProductId: mapped.wooProductId }, { ...mapped, syncedAt: new Date() }, { upsert: true, new: true });
+    upserted += 1;
+  }
+
+  await writeSyncLog('products', { status: 'success', recordsProcessed: rawProducts.length, recordsUpserted: upserted, message: 'Product sync completed' });
+  return { mode: 'live', processed: rawProducts.length, upserted };
 }
 
-export async function handleWooWebhook(pathType: 'customers' | 'orders', event: Record<string, unknown>) {
+export async function runInitialSync(scope: 'customers' | 'orders' | 'products' | 'all') {
+  if (scope === 'customers') return syncWooCustomers();
+  if (scope === 'orders') return syncWooOrders();
+  if (scope === 'products') return syncWooProducts();
+  const [customers, orders, products] = await Promise.all([syncWooCustomers(), syncWooOrders(), syncWooProducts()]);
+  await writeSyncLog('initial-import', { status: 'success', message: 'Initial import finished', details: { customers, orders, products } });
+  return { customers, orders, products };
+}
+
+export async function handleWooWebhook(pathType: 'customers' | 'orders' | 'products', event: Record<string, unknown>) {
   if (!isWooCommerceConfigured()) {
     throw new AppError('WooCommerce is not configured', 400);
   }
@@ -102,6 +123,14 @@ export async function handleWooWebhook(pathType: 'customers' | 'orders', event: 
     await connectToDatabase();
     const upserted = await Customer.findOneAndUpdate({ wooCustomerId: mapped.wooCustomerId }, { ...mapped, syncedAt: new Date() }, { upsert: true, new: true });
     await writeSyncLog('webhook', { status: 'success', message: 'Customer webhook processed', details: mapped });
+    return upserted;
+  }
+
+  if (pathType === 'products') {
+    const mapped = mapWooProduct(event);
+    await connectToDatabase();
+    const upserted = await Product.findOneAndUpdate({ wooProductId: mapped.wooProductId }, { ...mapped, syncedAt: new Date() }, { upsert: true, new: true });
+    await writeSyncLog('webhook', { status: 'success', message: 'Product webhook processed', details: mapped });
     return upserted;
   }
 

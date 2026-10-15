@@ -45,9 +45,10 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <MetricCard label="Total customers" value={data.totalCustomers} hint="CRM and WooCommerce customers" />
           <MetricCard label="Total orders" value={data.totalOrders} hint="Synced orders in the system" />
+          <MetricCard label="Total products" value={data.totalProducts ?? 0} hint="Tracked catalog items" />
           <MetricCard label="Total sales" value={data.totalSales} hint="Revenue across stored orders" />
           <MetricCard label="Open tasks" value={data.pendingTasks} hint="Requires follow-up" />
         </div>
@@ -95,22 +96,41 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent customer activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {data.recentCustomers.map((customer: any) => (
-                <div key={customer.id ?? customer._id} className="rounded-xl border border-border bg-muted/30 p-4">
-                  <p className="font-medium">{customer.firstName} {customer.lastName}</p>
-                  <p className="text-sm text-muted-foreground">{customer.email}</p>
-                  <p className="mt-2 text-sm">LTV: {(customer.lifetimeValueMinor ?? 0) / 100}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 xl:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent customer activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-2">
+                {data.recentCustomers.map((customer: any) => (
+                  <div key={customer.id ?? customer._id} className="rounded-xl border border-border bg-muted/30 p-4">
+                    <p className="font-medium">{customer.firstName} {customer.lastName}</p>
+                    <p className="text-sm text-muted-foreground">{customer.email}</p>
+                    <p className="mt-2 text-sm">LTV: {(customer.lifetimeValueMinor ?? 0) / 100}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent products</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-2">
+                {data.recentProducts?.map((product: any) => (
+                  <div key={product.id ?? product._id} className="rounded-xl border border-border bg-muted/30 p-4">
+                    <p className="font-medium">{product.name}</p>
+                    <p className="text-sm text-muted-foreground">{product.sku || 'No SKU'}</p>
+                    <p className="mt-2 text-sm">Stock: {product.stockQuantity ?? 0}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AppShell>
   );

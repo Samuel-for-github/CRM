@@ -2,7 +2,7 @@ import { Schema, model, models, type InferSchemaType, type Types } from 'mongoos
 
 const syncLogSchema = new Schema(
   {
-    syncType: { type: String, required: true, enum: ['customers', 'orders', 'webhook', 'initial-import', 'manual'] , index: true },
+    syncType: { type: String, required: true, enum: ['customers', 'orders', 'products', 'webhook', 'initial-import', 'manual'], index: true },
     status: { type: String, required: true, enum: ['success', 'partial', 'error'], index: true },
     source: { type: String, default: 'woocommerce' },
     startedAt: { type: Date, required: true },

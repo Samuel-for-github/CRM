@@ -3,6 +3,7 @@ import { demoState } from '@/lib/demo-store';
 import { minorUnitsToCurrency } from '@/lib/money';
 import { Customer } from '@/models/Customer';
 import { Order } from '@/models/Order';
+import { Product } from '@/models/Product';
 import { FollowUpTask } from '@/models/FollowUpTask';
 import { SyncLog } from '@/models/SyncLog';
 
@@ -10,20 +11,24 @@ export async function getDashboardData() {
   if (!isMongoReady()) {
     const totalCustomers = demoState.customers.length;
     const totalOrders = demoState.orders.length;
+    const totalProducts = demoState.products.length;
     const revenueMinor = demoState.orders.reduce((sum, order) => sum + order.totalMinor, 0);
     const recentOrders = [...demoState.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
     const recentCustomers = [...demoState.customers].sort((a, b) => (b.lastOrderAt ?? '').localeCompare(a.lastOrderAt ?? '')).slice(0, 5);
+    const recentProducts = [...demoState.products].sort((a, b) => (b.syncedAt ?? '').localeCompare(a.syncedAt ?? '')).slice(0, 5);
     const pendingTasks = demoState.tasks.filter((task) => task.status !== 'completed').length;
 
     return {
       totalCustomers,
       totalOrders,
+      totalProducts,
       totalSales: minorUnitsToCurrency(revenueMinor),
       revenueMinor,
       pendingOrders: demoState.orders.filter((order) => order.status === 'pending').length,
       completedOrders: demoState.orders.filter((order) => order.status === 'completed').length,
       recentOrders,
       recentCustomers,
+      recentProducts,
       syncStatus: 'Demo mode active',
       lastSyncAt: null,
       pendingTasks,
@@ -35,15 +40,17 @@ export async function getDashboardData() {
   }
 
   await connectToDatabase();
-  const [totalCustomers, totalOrders, revenueAggregate, pendingOrders, completedOrders, recentOrders, recentCustomers, recentSync, pendingTasks] = await Promise.all([
+  const [totalCustomers, totalOrders, totalProducts, revenueAggregate, pendingOrders, completedOrders, recentOrders, recentCustomers, recentProducts, recentSync, pendingTasks] = await Promise.all([
     Customer.countDocuments(),
     Order.countDocuments(),
+    Product.countDocuments(),
     Order.aggregate([{ $group: { _id: null, revenueMinor: { $sum: '$totalMinor' } } }]),
     Order.countDocuments({ status: 'pending' }),
     Order.countDocuments({ status: 'completed' }),
     Order.find().sort({ createdAt: -1 }).limit(5).lean(),
     Customer.find().sort({ updatedAt: -1 }).limit(5).lean(),
-    SyncLog.findOne().sort({ startedAt: -1 }).lean(),
+    Product.find().sort({ updatedAt: -1 }).limit(5).lean(),
+    SyncLog.findOne().sort({ startedAt: -1 }).lean<{ message: string; startedAt: Date | string } | null>(),
     FollowUpTask.countDocuments({ status: { $ne: 'completed' } })
   ]);
 
@@ -52,12 +59,14 @@ export async function getDashboardData() {
   return {
     totalCustomers,
     totalOrders,
+    totalProducts,
     totalSales: minorUnitsToCurrency(revenueMinor),
     revenueMinor,
     pendingOrders,
     completedOrders,
     recentOrders,
     recentCustomers,
+    recentProducts,
     syncStatus: recentSync?.message ?? 'Ready',
     lastSyncAt: recentSync?.startedAt ?? null,
     pendingTasks,

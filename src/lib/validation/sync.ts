@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const syncRequestSchema = z.object({
-  scope: z.enum(['customers', 'orders', 'all']).default('all')
+  scope: z.enum(['customers', 'orders', 'products', 'all']).default('all')
 });
 
 export const webhookEventSchema = z.object({

@@ -26,6 +26,7 @@ export async function connectToDatabase() {
   }
 
   cached.promise ??= mongoose.connect(getEnv().MONGODB_URI as string, {
+    dbName: 'crm',
     bufferCommands: false
   });
 

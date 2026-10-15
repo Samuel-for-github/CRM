@@ -3,6 +3,29 @@ import { demoState } from '@/lib/demo-store';
 import { Order } from '@/models/Order';
 import { AppError } from '@/lib/errors';
 
+export type OrderRecord = {
+  id?: string;
+  _id?: string;
+  wooOrderId?: number | null;
+  customerId?: string | null;
+  customer?: string | null;
+  guestCustomerName?: string | null;
+  guestCustomerEmail?: string | null;
+  status: string;
+  currency?: string;
+  totalMinor?: number;
+  subtotalMinor?: number;
+  shippingMinor?: number;
+  taxMinor?: number;
+  paymentMethod?: string;
+  items?: Array<{ productId?: number; sku?: string; name: string; quantity: number; priceMinor: number }>;
+  createdAt?: string | Date;
+  createdAtWoo?: string | Date;
+  syncedAt?: string | Date;
+  rawStatusLabel?: string;
+  metadata?: Record<string, unknown>;
+};
+
 export async function listOrders({ page, limit, search, status }: { page: number; limit: number; search: string; status: string }) {
   if (!isMongoReady()) {
     const filtered = demoState.orders.filter((order) => {
@@ -26,21 +49,21 @@ export async function listOrders({ page, limit, search, status }: { page: number
   }
 
   const [data, total] = await Promise.all([
-    Order.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Order.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean<OrderRecord[]>(),
     Order.countDocuments(query)
   ]);
   return { data, total };
 }
 
-export async function getOrderById(orderId: string) {
+export async function getOrderById(orderId: string): Promise<OrderRecord> {
   if (!isMongoReady()) {
     const order = demoState.orders.find((item) => item.id === orderId);
     if (!order) throw new AppError('Order not found', 404);
-    return order;
+    return order as OrderRecord;
   }
 
   await connectToDatabase();
-  const order = await Order.findById(orderId).populate('customer').lean();
+  const order = await Order.findById(orderId).populate('customer').lean<OrderRecord>();
   if (!order) throw new AppError('Order not found', 404);
   return order;
 }

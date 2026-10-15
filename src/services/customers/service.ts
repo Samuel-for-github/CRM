@@ -6,11 +6,31 @@ import { CustomerNote } from '@/models/CustomerNote';
 import { AppError } from '@/lib/errors';
 import { customerUpsertSchema } from '@/lib/validation/customer';
 
+export type CustomerRecord = {
+  id?: string;
+  _id?: string;
+  wooCustomerId?: number | null;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  company?: string;
+  source?: 'woocommerce' | 'crm';
+  currency?: string;
+  lifetimeValueMinor?: number;
+  lastOrderAt?: string | Date | null;
+  orderCount?: number;
+  notesSummary?: string;
+  tags?: string[];
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+};
+
 export type CustomerInput = ReturnType<typeof customerUpsertSchema.parse>;
 
 export async function listCustomers({ page, limit, search }: { page: number; limit: number; search: string }) {
   if (!isMongoReady()) {
-    const filtered = demoState.customers.filter((customer) => {
+    const filtered: CustomerRecord[] = demoState.customers.filter((customer) => {
       const haystack = `${customer.firstName} ${customer.lastName} ${customer.email} ${customer.phone ?? ''}`.toLowerCase();
       return haystack.includes(search.toLowerCase());
     });
@@ -32,22 +52,22 @@ export async function listCustomers({ page, limit, search }: { page: number; lim
     : {};
 
   const [data, total] = await Promise.all([
-    Customer.find(query).sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Customer.find(query).sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit).lean<CustomerRecord[]>(),
     Customer.countDocuments(query)
   ]);
 
   return { data, total };
 }
 
-export async function getCustomerById(customerId: string) {
+export async function getCustomerById(customerId: string): Promise<CustomerRecord> {
   if (!isMongoReady()) {
     const customer = demoState.customers.find((item) => item.id === customerId);
     if (!customer) throw new AppError('Customer not found', 404);
-    return customer;
+    return customer as CustomerRecord;
   }
 
   await connectToDatabase();
-  const customer = await Customer.findById(customerId).lean();
+  const customer = await Customer.findById(customerId).lean<CustomerRecord>();
   if (!customer) throw new AppError('Customer not found', 404);
   return customer;
 }
@@ -64,6 +84,7 @@ export async function createCustomer(input: CustomerInput) {
       lifetimeValueMinor: 0,
       orderCount: 0,
       notesSummary: parsed.notesSummary ?? '',
+      notes: [],
       syncedAt: undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -135,7 +156,7 @@ export async function getCustomerProfile(customerId: string) {
   if (!isMongoReady()) {
     const orders = demoState.orders.filter((order) => order.customerId === customerId);
     const notes = demoState.notesByCustomerId.get(customerId) ?? [];
-    return { customer, orders, notes };
+    return { customer: customer as CustomerRecord, orders, notes };
   }
 
   await connectToDatabase();
@@ -143,7 +164,7 @@ export async function getCustomerProfile(customerId: string) {
     import('@/models/Order').then(({ Order }) => Order.find({ customer: customerId }).sort({ createdAt: -1 }).lean()),
     CustomerNote.find({ customer: customerId }).sort({ createdAt: -1 }).lean()
   ]);
-  return { customer, orders, notes };
+  return { customer: customer as CustomerRecord, orders, notes };
 }
 
 export async function findInactiveCustomers(days = 90) {

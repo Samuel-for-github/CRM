@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { getEnv, isDemoMode } from '@/lib/env';
 import { AppError } from '@/lib/errors';
 
@@ -6,6 +7,68 @@ type WooFetchOptions = {
   params?: Record<string, string | number | undefined>;
   timeoutMs?: number;
 };
+
+type WooOAuthHeaderOptions = {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  url: string;
+  consumerKey: string;
+  consumerSecret: string;
+  params?: Record<string, string | number | undefined>;
+};
+
+function percentEncode(value: string) {
+  return encodeURIComponent(value)
+    .replace(/%7E/g, '~')
+    .replace(/%20/g, '+');
+}
+
+export function buildWooOAuthHeader({ method, url, consumerKey, consumerSecret, params = {} }: WooOAuthHeaderOptions) {
+  const targetUrl = new URL(url);
+  const oauthNonce = crypto.randomBytes(16).toString('hex');
+  const oauthTimestamp = String(Math.floor(Date.now() / 1000));
+
+  const oauthParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') {
+      oauthParams.set(key, String(value));
+    }
+  }
+  for (const [key, value] of targetUrl.searchParams.entries()) {
+    oauthParams.set(key, value);
+  }
+
+  oauthParams.set('oauth_consumer_key', consumerKey);
+  oauthParams.set('oauth_nonce', oauthNonce);
+  oauthParams.set('oauth_signature_method', 'HMAC-SHA1');
+  oauthParams.set('oauth_timestamp', oauthTimestamp);
+  oauthParams.set('oauth_version', '1.0');
+
+  const sortedEntries = [...oauthParams.entries()].sort(([left], [right]) => left.localeCompare(right));
+  const normalizedParams = sortedEntries
+    .map(([key, value]) => `${percentEncode(key)}=${percentEncode(value)}`)
+    .join('&');
+
+  const signatureBaseString = [
+    method.toUpperCase(),
+    percentEncode(`${targetUrl.origin}${targetUrl.pathname}`),
+    percentEncode(normalizedParams)
+  ].join('&');
+
+  const signingKey = `${percentEncode(consumerSecret)}&`;
+  const oauthSignature = crypto
+    .createHmac('sha1', signingKey)
+    .update(signatureBaseString)
+    .digest('base64');
+
+  return [
+    `OAuth oauth_consumer_key="${percentEncode(consumerKey)}"`,
+    `oauth_nonce="${percentEncode(oauthNonce)}"`,
+    `oauth_signature="${percentEncode(oauthSignature)}"`,
+    'oauth_signature_method="HMAC-SHA1"',
+    `oauth_timestamp="${oauthTimestamp}"`,
+    'oauth_version="1.0"'
+  ].join(', ');
+}
 
 function buildWooUrl(path: string, params?: Record<string, string | number | undefined>) {
   const env = getEnv();
@@ -34,8 +97,13 @@ export async function wooFetch<T>({ path, params, timeoutMs = 15000 }: WooFetchO
 
   const env = getEnv();
   const url = buildWooUrl(path, params);
-  url.searchParams.set('consumer_key', env.WOO_CONSUMER_KEY as string);
-  url.searchParams.set('consumer_secret', env.WOO_CONSUMER_SECRET as string);
+  const authHeader = buildWooOAuthHeader({
+    method: 'GET',
+    url: url.toString(),
+    consumerKey: env.WOO_CONSUMER_KEY as string,
+    consumerSecret: env.WOO_CONSUMER_SECRET as string,
+    params
+  });
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -45,7 +113,8 @@ export async function wooFetch<T>({ path, params, timeoutMs = 15000 }: WooFetchO
       method: 'GET',
       signal: controller.signal,
       headers: {
-        Accept: 'application/json'
+        Accept: 'application/json',
+        Authorization: authHeader
       }
     });
 

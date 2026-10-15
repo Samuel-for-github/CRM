@@ -6,7 +6,7 @@ export type DemoCustomer = {
   firstName: string;
   lastName: string;
   email: string;
-  phone?: string;
+  phone?: string | null;
   source: 'woocommerce' | 'crm';
   lifetimeValueMinor: number;
   lastOrderAt?: string;
@@ -17,11 +17,28 @@ export type DemoOrder = {
   id: string;
   wooOrderId: number | null;
   customerId: string | null;
-  status: 'pending' | 'processing' | 'completed';
+  status: string;
   totalMinor: number;
   currency: string;
   createdAt: string;
   items: Array<{ name: string; quantity: number; priceMinor: number }>;
+};
+
+export type DemoProduct = {
+  id: string;
+  wooProductId: number | null;
+  name: string;
+  sku: string;
+  description: string;
+  priceMinor: number;
+  regularPriceMinor: number;
+  salePriceMinor: number;
+  currency: string;
+  stockStatus: 'instock' | 'outofstock' | 'onbackorder' | 'lowstock';
+  stockQuantity: number;
+  category?: string;
+  categories: string[];
+  syncedAt?: string;
 };
 
 export type DemoTask = {
@@ -104,6 +121,57 @@ export const demoOrders: DemoOrder[] = [
     currency: 'USD',
     createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
     items: [{ name: 'Guest Order Fee', quantity: 1, priceMinor: 5500 }]
+  }
+];
+
+export const demoProducts: DemoProduct[] = [
+  {
+    id: 'prod_4001',
+    wooProductId: 301,
+    name: 'Starter Kit',
+    sku: 'SK-100',
+    description: 'A starter bundle for new customers.',
+    priceMinor: 89000,
+    regularPriceMinor: 89000,
+    salePriceMinor: 0,
+    currency: 'USD',
+    stockStatus: 'instock',
+    stockQuantity: 42,
+    category: 'Bundles',
+    categories: ['Bundles', 'Popular'],
+    syncedAt: new Date(Date.now() - 3 * 86400000).toISOString()
+  },
+  {
+    id: 'prod_4002',
+    wooProductId: 302,
+    name: 'Premium Bundle',
+    sku: 'PB-220',
+    description: 'High-value package with priority service.',
+    priceMinor: 149000,
+    regularPriceMinor: 169000,
+    salePriceMinor: 20000,
+    currency: 'USD',
+    stockStatus: 'lowstock',
+    stockQuantity: 9,
+    category: 'Premium',
+    categories: ['Premium'],
+    syncedAt: new Date(Date.now() - 7 * 86400000).toISOString()
+  },
+  {
+    id: 'prod_4003',
+    wooProductId: 303,
+    name: 'Replacement Filters',
+    sku: 'RF-410',
+    description: 'Replacement filters for the standard setup.',
+    priceMinor: 48650,
+    regularPriceMinor: 48650,
+    salePriceMinor: 0,
+    currency: 'USD',
+    stockStatus: 'instock',
+    stockQuantity: 28,
+    category: 'Accessories',
+    categories: ['Accessories'],
+    syncedAt: new Date(Date.now() - 1 * 86400000).toISOString()
   }
 ];
 
