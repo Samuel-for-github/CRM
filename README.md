@@ -5,6 +5,10 @@ follow-up tasks. The application supports MongoDB persistence, WooCommerce
 REST API synchronization, webhook updates, an AI assistant, and a demo mode
 when external services are not configured.
 
+## Planning and execution video
+
+[Watch the planning and execution video](https://drive.google.com/drive/folders/1H4_oUN39TqqfMzbekkSv8KwFbNdsBc9i?usp=sharing)
+
 ## Features
 
 - Admin login with an HTTP-only JWT session cookie.
