@@ -11,8 +11,10 @@ const environmentSchema = z.object({
   WOO_CONSUMER_KEY: z.string().min(1).optional(),
   WOO_CONSUMER_SECRET: z.string().min(1).optional(),
   WOO_WEBHOOK_SECRET: z.string().min(1).optional(),
-  HUGGING_FACE_TOKEN: z.string().min(1).optional(),
-  HUGGING_FACE_MODEL: z.string().min(1).default('meta-llama/Llama-3.1-8B-Instruct')
+  OPENROUTER_API_KEY: z.string().min(1).optional(),
+  OPENROUTER_MODEL: z.string().min(1).default('deepseek/deepseek-r1:free'),
+  OPENROUTER_SITE_URL: z.string().url().optional(),
+  OPENROUTER_SITE_NAME: z.string().min(1).optional()
 });
 
 export type AppEnv = z.infer<typeof environmentSchema>;

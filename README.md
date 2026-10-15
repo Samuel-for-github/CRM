@@ -92,13 +92,16 @@ APP_BASE_URL=http://localhost:3000
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD_HASH=<bcrypt-hash>
 
-HUGGING_FACE_TOKEN=your_hugging_face_token
-HUGGING_FACE_MODEL=meta-llama/Llama-3.1-8B-Instruct
+OPENROUTER_API_KEY=your_openrouter_api_key
+OPENROUTER_MODEL=deepseek/deepseek-r1:free
+OPENROUTER_SITE_URL=http://localhost:3000
+OPENROUTER_SITE_NAME=AI Powered WooCommerce CRM
 ```
 
 Only `MONGODB_URI`, `WOO_STORE_URL`, `WOO_CONSUMER_KEY`, and
 `WOO_CONSUMER_SECRET` are required for live MongoDB and WooCommerce
-operation. Other values are optional depending on the feature being used.
+operation. `OPENROUTER_API_KEY` is required for live AI responses. Other
+values are optional depending on the feature being used.
 
 Environment files must be located at the project root, not in `src/`.
 Next.js loads `.env.local` automatically when the development server starts.
