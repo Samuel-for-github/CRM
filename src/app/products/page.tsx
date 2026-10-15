@@ -1,60 +1,88 @@
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { AppShell } from '@/components/layout/app-shell';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getSessionFromCookies } from '@/lib/auth';
-import { getPaginationParams, buildPaginationMeta } from '@/lib/pagination';
-import { listProducts } from '@/services/products/service';
-import { minorUnitsToCurrency } from '@/lib/money';
 
-export default async function ProductsPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
-  const session = await getSessionFromCookies();
-  if (!session) redirect('/login');
+"use client";
 
-  const params = getPaginationParams(new URLSearchParams(searchParams as Record<string, string>));
-  const { data, total } = await listProducts(params);
-  const meta = buildPaginationMeta(total, params.page, params.limit);
+import { useEffect, useState } from "react";
+
+interface Product {
+  id: number;
+  name: string;
+  price: string;
+  sku: string;
+  stock_status: string;
+  images: { src: string; alt: string }[];
+  categories: { id: number; name: string }[];
+}
+
+export default function WooProductsPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [error, setError] = useState("");
+
+
+useEffect(() => {
+  async function loadProducts() {
+    try {
+      const response = await fetch("/api/woo/products");
+      const body = await response.text();
+
+      console.log("API status:", response.status);
+      console.log("API response:", body);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${body}`);
+      }
+
+      setProducts(JSON.parse(body));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unknown error"
+      );
+    }
+  }
+
+  loadProducts();
+}, []);
+
+
+  if (error) return <p>Error: {error}</p>;
 
   return (
-    <AppShell>
-      <div className="p-6 lg:p-8 space-y-6">
-        <div>
-          <h2 className="text-3xl font-semibold">Products</h2>
-          <p className="text-muted-foreground">Track inventory, price, and product activity across the WooCommerce catalog.</p>
-        </div>
+    <main style={{ padding: 24 }}>
+      <h1>WooCommerce Products</h1>
 
-        <Card>
-          <CardHeader><CardTitle>Catalog</CardTitle></CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.map((product: any) => (
-                  <TableRow key={product.id ?? product._id}>
-                    <TableCell>{product.name}</TableCell>
-                    <TableCell>{product.sku || '—'}</TableCell>
-                    <TableCell>{minorUnitsToCurrency(product.priceMinor ?? 0, product.currency ?? 'USD')}</TableCell>
-                    <TableCell>{product.stockQuantity ?? 0}</TableCell>
-                    <TableCell><Badge variant={product.stockStatus === 'instock' ? 'secondary' : 'outline'}>{product.stockStatus ?? 'unknown'}</Badge></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <div className="mt-4 text-sm text-muted-foreground">Page {meta.page} of {meta.totalPages}</div>
-          </CardContent>
-        </Card>
+      {products.length === 0 && <p>Loading products...</p>}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+          gap: 20,
+        }}
+      >
+        {products.map((product) => (
+          <article
+            key={product.id}
+            style={{ border: "1px solid #ddd", padding: 16, borderRadius: 8 }}
+          >
+            {product.images[0] && (
+              <img
+                src={product.images[0].src}
+                alt={product.images[0].alt || product.name}
+                style={{ width: "100%", height: 180, objectFit: "cover" }}
+              />
+            )}
+
+            <h2>{product.name}</h2>
+            <p>Product ID: {product.id}</p>
+            <p>Price: ${product.price || "0.00"}</p>
+            <p>SKU: {product.sku || "Not set"}</p>
+            <p>Stock: {product.stock_status}</p>
+            <p>
+              Category:{" "}
+              {product.categories.map((category) => category.name).join(", ")}
+            </p>
+          </article>
+        ))}
       </div>
-    </AppShell>
+    </main>
   );
 }
